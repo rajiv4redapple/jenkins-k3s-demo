@@ -15,9 +15,9 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: nginxdemos/hello
+        image: rajivdocker10/demo-app:latest
         ports:
-        - containerPort: 80
+        - containerPort: 5000
 ---
 apiVersion: v1
 kind: Service
@@ -29,7 +29,7 @@ spec:
     app: demo-app
   ports:
   - port: 80
-    targetPort: 80
+    targetPort: 5000
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
