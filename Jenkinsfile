@@ -40,12 +40,11 @@ pipeline {
             }
         }
         
-        stage('Update K8s Manifest') {
+stage('Update K8s Manifest') {
             steps {
                 echo "📝 Updating Kubernetes manifest..."
                 sh """
-                    sed -i 's|image:.*demo-app.*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|g' \
-                    k8s/deployment.yaml
+                    sed -i 's|image:.*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|g' k8s/deployment.yaml
                     echo "Updated manifest:"
                     cat k8s/deployment.yaml
                 """
@@ -58,20 +57,12 @@ pipeline {
                 sh """
                     git config user.email "jenkins@local"
                     git config user.name "Jenkins"
+                    git checkout main || git checkout -b main origin/main
+                    sed -i 's|image:.*|image: ${DOCKER_IMAGE}:${DOCKER_TAG}|g' k8s/deployment.yaml
                     git add k8s/deployment.yaml
-                    git commit -m "ci: update image to ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                    git push https://${GITHUB_TOKEN}@github.com/rajiv4redapple/jenkins-k3s-demo.git HEAD:main
+                    git diff --cached --quiet || git commit -m "ci: update image to ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    git push https://\${GITHUB_TOKEN}@github.com/rajiv4redapple/jenkins-k3s-demo.git HEAD:main
                 """
             }
         }
-    }
-    
-    post {
-        success {
-            echo "✅ Pipeline SUCCESS! ArgoCD will deploy shortly..."
-        }
-        failure {
-            echo "❌ Pipeline FAILED!"
-        }
-    }
-}
+        
