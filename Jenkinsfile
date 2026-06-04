@@ -3,12 +3,12 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "rajivdocker10/demo-app"
-        DOCKER_TAG = "${BUILD_NUMBER}"
         DOCKERHUB_CREDS = credentials('dockerhub-credentials')
         GITHUB_TOKEN = credentials('github-token')
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo "📥 Checking out code from GitHub..."
@@ -35,31 +35,24 @@ pipeline {
                     echo $DOCKERHUB_CREDS_PSW | docker login -u $DOCKERHUB_CREDS_USR --password-stdin
                     docker push rajivdocker10/demo-app:${BUILD_NUMBER}
                     docker push rajivdocker10/demo-app:latest
+                    docker logout
                 '''
             }
         }
 
-        stage('Update K8s Manifest') {
+        stage('Update and Push Manifest') {
             steps {
-                echo "📝 Updating Kubernetes manifest..."
-                sh '''
-                    git checkout main || git checkout -b main origin/main
-                    sed -i "s|image:.*|image: rajivdocker10/demo-app:${BUILD_NUMBER}|g" k8s/deployment.yaml
-                    echo "Updated manifest:"
-                    cat k8s/deployment.yaml
-                '''
-            }
-        }
-
-        stage('Push Manifest to GitHub') {
-            steps {
-                echo "📤 Pushing updated manifest to GitHub..."
+                echo "📝 Updating Kubernetes manifest and pushing to GitHub..."
                 sh '''
                     git config user.email "jenkins@local"
                     git config user.name "Jenkins"
-                    git checkout main
-                    git pull https://$GITHUB_TOKEN@github.com/rajiv4redapple/jenkins-k3s-demo.git main
+                    git config pull.rebase false
+                    git fetch origin main
+                    git reset --hard origin/main
                     sed -i "s|image:.*|image: rajivdocker10/demo-app:${BUILD_NUMBER}|g" k8s/deployment.yaml
+                    echo "--- Updated manifest ---"
+                    cat k8s/deployment.yaml
+                    echo "------------------------"
                     git add k8s/deployment.yaml
                     git diff --cached --quiet || git commit -m "ci: update image to rajivdocker10/demo-app:${BUILD_NUMBER}"
                     git push https://$GITHUB_TOKEN@github.com/rajiv4redapple/jenkins-k3s-demo.git HEAD:main
@@ -70,10 +63,13 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline SUCCESS! ArgoCD will deploy shortly..."
+            echo "✅ Pipeline SUCCESS! ArgoCD will detect and deploy shortly..."
         }
         failure {
-            echo "❌ Pipeline FAILED!"
+            echo "❌ Pipeline FAILED! Check console output above."
+        }
+        always {
+            echo "🏁 Pipeline finished - Build #${BUILD_NUMBER}"
         }
     }
 }
