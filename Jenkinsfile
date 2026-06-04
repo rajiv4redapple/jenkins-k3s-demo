@@ -57,6 +57,9 @@ pipeline {
                 sh '''
                     git config user.email "jenkins@local"
                     git config user.name "Jenkins"
+                    git checkout main
+                    git pull https://$GITHUB_TOKEN@github.com/rajiv4redapple/jenkins-k3s-demo.git main
+                    sed -i "s|image:.*|image: rajivdocker10/demo-app:${BUILD_NUMBER}|g" k8s/deployment.yaml
                     git add k8s/deployment.yaml
                     git diff --cached --quiet || git commit -m "ci: update image to rajivdocker10/demo-app:${BUILD_NUMBER}"
                     git push https://$GITHUB_TOKEN@github.com/rajiv4redapple/jenkins-k3s-demo.git HEAD:main
