@@ -9,6 +9,23 @@ pipeline {
 
     stages {
 
+        stage('Check Commit') {
+            steps {
+                script {
+                    def commitMsg = sh(
+                        script: 'git log -1 --pretty=%B',
+                        returnStdout: true
+                    ).trim()
+                    echo "Commit message: ${commitMsg}"
+                    if (commitMsg.startsWith('ci:')) {
+                        echo "⏭️ Skipping build — commit made by Jenkins CI"
+                        currentBuild.result = 'NOT_BUILT'
+                        error('Skipping CI commit')
+                    }
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo "📥 Checking out code from GitHub..."
