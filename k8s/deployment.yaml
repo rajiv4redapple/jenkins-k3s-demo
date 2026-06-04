@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: rajivdocker10/demo-app:20
+        image: rajivdocker10/demo-app:21
         ports:
         - containerPort: 5000
 ---
