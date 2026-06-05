@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "rajivdocker10/demo-app"
-        DOCKERHUB_CREDS = credentials('dockerhub-credentials')
+        DOCKER_IMAGE = "registry.local/demo/demo-app"
+        HARBOR_CREDS = credentials('harbor-credentials')
         GITHUB_TOKEN = credentials('github-token')
     }
 
@@ -39,20 +39,24 @@ pipeline {
                 echo "🐳 Building Docker image..."
                 sh '''
                     cd app
-                    docker build -t rajivdocker10/demo-app:${BUILD_NUMBER} .
-                    docker tag rajivdocker10/demo-app:${BUILD_NUMBER} rajivdocker10/demo-app:latest
+                    docker build -t registry.local/demo/demo-app:${BUILD_NUMBER} .
+                    docker tag registry.local/demo/demo-app:${BUILD_NUMBER} \
+                      registry.local/demo/demo-app:latest
                 '''
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Push to Harbor') {
             steps {
-                echo "📤 Pushing to Docker Hub..."
+                echo "📤 Pushing to Harbor registry..."
                 sh '''
-                    echo $DOCKERHUB_CREDS_PSW | docker login -u $DOCKERHUB_CREDS_USR --password-stdin
-                    docker push rajivdocker10/demo-app:${BUILD_NUMBER}
-                    docker push rajivdocker10/demo-app:latest
-                    docker logout
+                    echo $HARBOR_CREDS_PSW | \
+                    docker login registry.local \
+                      -u $HARBOR_CREDS_USR \
+                      --password-stdin
+                    docker push registry.local/demo/demo-app:${BUILD_NUMBER}
+                    docker push registry.local/demo/demo-app:latest
+                    docker logout registry.local
                 '''
             }
         }
@@ -66,12 +70,12 @@ pipeline {
                     git config pull.rebase false
                     git fetch origin main
                     git reset --hard origin/main
-                    sed -i "s|image:.*|image: rajivdocker10/demo-app:${BUILD_NUMBER}|g" k8s/deployment.yaml
+                    sed -i "s|image:.*|image: registry.local/demo/demo-app:${BUILD_NUMBER}|g" k8s/deployment.yaml
                     echo "--- Updated manifest ---"
                     cat k8s/deployment.yaml
                     echo "------------------------"
                     git add k8s/deployment.yaml
-                    git diff --cached --quiet || git commit -m "ci: update image to rajivdocker10/demo-app:${BUILD_NUMBER}"
+                    git diff --cached --quiet || git commit -m "ci: update image to registry.local/demo/demo-app:${BUILD_NUMBER}"
                     git push https://$GITHUB_TOKEN@github.com/rajiv4redapple/jenkins-k3s-demo.git HEAD:main
                 '''
             }
