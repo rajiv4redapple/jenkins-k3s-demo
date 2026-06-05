@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: registry.local/demo/demo-app:36
+        image: registry.local/demo/demo-app:37
         ports:
         - containerPort: 5000
 ---
